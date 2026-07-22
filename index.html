@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>統計検定 学習ポータル</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--ink:#1f2430;--sub:#6b7280;--accent:#0d9488;--accent2:#0f766e;--ok:#16a34a;--ng:#dc2626;--line:#e5e7eb;--soft:#f0fdfa;--warn:#b45309}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI","Hiragino Sans","Yu Gothic UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.8}
+  header{background:var(--card);border-bottom:1px solid var(--line);padding:12px 16px;position:sticky;top:0;z-index:20}
+  header h1{margin:0;font-size:17px}
+  nav{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;align-items:center}
+  nav button{border:1px solid var(--line);background:#fff;border-radius:16px;padding:5px 14px;cursor:pointer;font-size:13px;font-family:inherit}
+  nav button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  select{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:13px;font-family:inherit;background:#fff;max-width:60vw}
+  main{max-width:860px;margin:0 auto;padding:18px 16px 60px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+  .card.today{border-color:var(--accent);border-width:2px}
+  .ttl{font-size:20px;font-weight:700;margin:0 0 2px}
+  .meta{color:var(--sub);font-size:13px}
+  .badge{display:inline-block;font-size:11px;border-radius:10px;padding:1px 9px;border:1px solid var(--line);background:#f1f5f9;color:var(--sub);white-space:nowrap;vertical-align:2px}
+  .badge.now{background:var(--accent);border-color:var(--accent);color:#fff}
+  .badge.ahead{background:#fffbeb;border-color:#fcd34d;color:var(--warn)}
+  .badge.lv{background:var(--soft);border-color:#99f6e4;color:var(--accent2)}
+  .bar{height:9px;background:#e2e8f0;border-radius:5px;overflow:hidden;margin:8px 0 4px}
+  .bar>i{display:block;height:100%;background:var(--accent)}
+  .rowbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .rowbtns button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 14px;cursor:pointer;font-size:13px;font-family:inherit}
+  .rowbtns button:disabled{opacity:.4;cursor:default}
+  .linklist{list-style:none;padding:0;margin:8px 0 0}
+  .linklist li{padding:5px 0;border-top:1px dashed var(--line)}
+  .linklist a{color:var(--accent2);cursor:pointer;text-decoration:none}
+  .linklist a:hover{text-decoration:underline}
+  .empty{color:var(--sub);text-align:center;margin-top:60px}
+  /* Markdown 本文 */
+  .md h1,.md h2,.md h3,.md h4{line-height:1.5;margin:1.5em 0 .5em}
+  .md h1{font-size:22px;border-bottom:2px solid var(--accent);padding-bottom:6px}
+  .md h2{font-size:19px;border-bottom:1px solid var(--line);padding-bottom:5px}
+  .md h3{font-size:16px;color:var(--accent2)}
+  .md h4{font-size:14.5px;color:var(--sub)}
+  .md p{margin:.7em 0}
+  .md ul,.md ol{margin:.6em 0;padding-left:1.5em}
+  .md li{margin:.25em 0}
+  .md ol{list-style:decimal}
+  .md hr{border:none;border-top:1px solid var(--line);margin:1.6em 0}
+  .md code{background:#f1f5f9;border-radius:4px;padding:1px 5px;font-size:.92em}
+  .md pre{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:12px;overflow-x:auto}
+  .md pre code{background:none;padding:0}
+  .md .tw{overflow-x:auto;margin:1em 0}
+  .md table{border-collapse:collapse;font-size:14px;min-width:100%}
+  .md th,.md td{border:1px solid var(--line);padding:6px 10px;text-align:left;white-space:nowrap}
+  .md th{background:var(--soft)}
+  .md .katex-display{overflow-x:auto;overflow-y:hidden;padding:2px 0}
+  .rawtex{color:var(--accent2);background:#f1f5f9;border-radius:4px;padding:0 4px}
+  /* 進捗テーブル */
+  table.prog{width:100%;border-collapse:collapse;background:var(--card);border-radius:10px;overflow:hidden;font-size:14px}
+  table.prog th,table.prog td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left}
+  table.prog th{background:#f1f5f9;font-size:13px}
+  table.prog tr.done{background:#f0fdf4}
+  table.prog tr.next{background:#fffbeb;font-weight:600}
+  table.prog td.no{color:var(--sub);width:3em}
+</style>
+</head>
+<body>
+<header>
+  <h1>統計検定 学習ポータル</h1>
+  <nav>
+    <button id="t_today" class="active" onclick="setTab('today')">今日</button>
+    <button id="t_lecture" onclick="setTab('lecture')">演習</button>
+    <button id="t_note" onclick="setTab('note')">分野ノート</button>
+    <button id="t_progress" onclick="setTab('progress')">進捗</button>
+    <span id="ctrl"></span>
+  </nav>
+</header>
+<main id="content"><p class="empty">読み込み中…</p></main>
+
+<script>
+/* ============================================================
+   データ受け口（データ JS 側から呼ばれる）
+   ============================================================ */
+window.__LECTURES = [];
+window.__NOTES = [];
+window.__PROGRESS = null;
+window.__addLecture = function (o) {
+  for (var i = 0; i < window.__LECTURES.length; i++) if (window.__LECTURES[i].date === o.date) return;
+  window.__LECTURES.push(o);
+};
+window.__addNote = function (o) {
+  for (var i = 0; i < window.__NOTES.length; i++) if (window.__NOTES[i].id === o.id) return;
+  window.__NOTES.push(o);
+};
+window.__setProgress = function (o) { window.__PROGRESS = o; };
+
+/* ============================================================
+   スクリプト読み込みユーティリティ（CDN はフォールバック付き）
+   ============================================================ */
+function loadScript(src) {
+  return new Promise(function (res, rej) {
+    var s = document.createElement('script');
+    s.src = src; s.crossOrigin = 'anonymous';
+    s.onload = function () { res(true); };
+    s.onerror = function () { rej(new Error(src)); };
+    document.head.appendChild(s);
+  });
+}
+function loadOptional(src) { return loadScript(src).catch(function () { return false; }); }
+function loadChain(list) {
+  var i = 0;
+  function step() {
+    if (i >= list.length) return Promise.resolve(false);
+    return loadScript(list[i++]).catch(step);
+  }
+  return step();
+}
+
+/* ============================================================
+   Markdown レンダラ（依存なし）
+   対応: 見出し / 段落 / 箇条書き / 表 / 水平線 / 強調 / コード /
+         リンク / インライン数式 $..$ / ディスプレイ数式 $$..$$
+   数式とコードは先に取り出して退避し、最後に戻します。
+   ============================================================ */
+function esc(t) {
+  return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function renderMath(tex, display) {
+  if (window.katex) {
+    try {
+      return window.katex.renderToString(tex, {
+        displayMode: !!display, throwOnError: false, strict: false,
+        macros: { '\\P': '\\mathrm{P}' }
+      });
+    } catch (e) { /* 下のフォールバックへ */ }
+  }
+  // KaTeX が読めなかった場合は生の LaTeX をそのまま見せます（内容は失われません）
+  return (display ? '<div class="rawtex">' : '<span class="rawtex">') + esc(tex) + (display ? '</div>' : '</span>');
+}
+function inline(t) {
+  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+  return t;
+}
+function splitRow(line) {
+  var s = line.trim().replace(/^\|/, '').replace(/\|$/, '');
+  return s.split('|').map(function (x) { return x.trim(); });
+}
+function mdToHtml(md) {
+  var codes = [], maths = [];
+  md = String(md).replace(/\r\n/g, '\n');
+  // 1) コードを退避
+  md = md.replace(/```[a-zA-Z0-9]*\n([\s\S]*?)```/g, function (_, c) { codes.push({ t: c, b: true }); return '@@C' + (codes.length - 1) + '@@'; });
+  md = md.replace(/`([^`\n]+)`/g, function (_, c) { codes.push({ t: c, b: false }); return '@@C' + (codes.length - 1) + '@@'; });
+  // 2) 数式を退避（$$ を先に）
+  md = md.replace(/\$\$([\s\S]*?)\$\$/g, function (_, t) { maths.push({ t: t, d: true }); return '@@M' + (maths.length - 1) + '@@'; });
+  md = md.replace(/\$([^$\n]+?)\$/g, function (_, t) { maths.push({ t: t, d: false }); return '@@M' + (maths.length - 1) + '@@'; });
+  // 3) HTML エスケープ（この時点で数式・コードは placeholder なので安全）
+  md = esc(md);
+
+  // 4) ブロック解析
+  var lines = md.split('\n'), out = [], i = 0, para = [];
+  function flushPara() {
+    if (para.length) { out.push('<p>' + inline(para.join('')) + '</p>'); para = []; }
+  }
+  while (i < lines.length) {
+    var ln = lines[i];
+    if (/^\s*$/.test(ln)) { flushPara(); i++; continue; }
+    var h = ln.match(/^(#{1,6})\s+(.*)$/);
+    if (h) { flushPara(); var lv = Math.min(h[1].length, 6); out.push('<h' + lv + '>' + inline(h[2]) + '</h' + lv + '>'); i++; continue; }
+    if (/^\s*(---+|===+|\*\*\*+)\s*$/.test(ln)) { flushPara(); out.push('<hr>'); i++; continue; }
+    if (/^\s*\|/.test(ln)) { // 表
+      flushPara();
+      var tbl = [];
+      while (i < lines.length && /^\s*\|/.test(lines[i])) { tbl.push(lines[i]); i++; }
+      var head = splitRow(tbl[0]);
+      var hasSep = tbl.length > 1 && /^[\s|:\-]+$/.test(tbl[1]);
+      var align = hasSep ? splitRow(tbl[1]).map(function (c) {
+        if (/^:.*:$/.test(c)) return 'center';
+        if (/:$/.test(c)) return 'right';
+        return 'left';
+      }) : [];
+      var body = tbl.slice(hasSep ? 2 : 1);
+      var t = '<div class="tw"><table><thead><tr>';
+      head.forEach(function (c, ci) { t += '<th style="text-align:' + (align[ci] || 'left') + '">' + inline(c) + '</th>'; });
+      t += '</tr></thead><tbody>';
+      body.forEach(function (r) {
+        t += '<tr>';
+        splitRow(r).forEach(function (c, ci) { t += '<td style="text-align:' + (align[ci] || 'left') + '">' + inline(c) + '</td>'; });
+        t += '</tr>';
+      });
+      out.push(t + '</tbody></table></div>');
+      continue;
+    }
+    if (/^\s*\d+\.\s+/.test(ln)) { // 番号付きリスト
+      flushPara();
+      var ol = '<ol>';
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        ol += '<li>' + inline(lines[i].replace(/^\s*\d+\.\s+/, '')) + '</li>';
+        i++;
+      }
+      out.push(ol + '</ol>');
+      continue;
+    }
+    if (/^\s*[-*+]\s+/.test(ln)) { // 箇条書き（2階層まで）
+      flushPara();
+      var stack = 0, html = '<ul>';
+      while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
+        var m = lines[i].match(/^(\s*)[-*+]\s+(.*)$/);
+        var depth = m[1].length >= 2 ? 1 : 0;
+        while (depth > stack) { html += '<ul>'; stack++; }
+        while (depth < stack) { html += '</ul>'; stack--; }
+        html += '<li>' + inline(m[2]) + '</li>';
+        i++;
+      }
+      while (stack > 0) { html += '</ul>'; stack--; }
+      out.push(html + '</ul>');
+      continue;
+    }
+    para.push(ln.trim());
+    i++;
+  }
+  flushPara();
+  var html = out.join('\n');
+
+  // 5) 退避したものを戻す
+  html = html.replace(/@@M(\d+)@@/g, function (_, n) { var m = maths[+n]; return renderMath(m.t, m.d); });
+  html = html.replace(/@@C(\d+)@@/g, function (_, n) {
+    var c = codes[+n];
+    return c.b ? '<pre><code>' + esc(c.t) + '</code></pre>' : '<code>' + esc(c.t) + '</code>';
+  });
+  return html;
+}
+
+/* ============================================================
+   アプリ本体
+   ============================================================ */
+var LEC = [], NOTES = [], PROG = null, tab = 'today';
+var selDate = null, selNote = null, selLevel = null;
+
+function todayStr(d) {
+  d = d || new Date();
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+function store(k, v) { try { if (v === undefined) return localStorage.getItem('toukei_' + k); localStorage.setItem('toukei_' + k, v); } catch (e) { return null; } }
+
+/** 今日の回。無ければ「今日以前で最新の回」を返します。 */
+function pickToday() {
+  var t = todayStr();
+  var exact = LEC.filter(function (x) { return x.date === t; })[0];
+  if (exact) return { rec: exact, exact: true };
+  var past = LEC.filter(function (x) { return x.date <= t; });
+  return { rec: past.length ? past[past.length - 1] : (LEC[0] || null), exact: false };
+}
+/** 先読み対象（今日より後の回） */
+function aheadList() {
+  var t = todayStr();
+  return LEC.filter(function (x) { return x.date > t; });
+}
+/** カリキュラム上の次トピック */
+function nextTopic() {
+  if (!PROG) return null;
+  for (var i = 0; i < PROG.items.length; i++) if (!PROG.items[i].date) return PROG.items[i];
+  return null;
+}
+
+function setTab(t) {
+  tab = t;
+  ['today', 'lecture', 'note', 'progress'].forEach(function (x) {
+    document.getElementById('t_' + x).classList.toggle('active', x === t);
+  });
+  store('tab', t);
+  render();
+}
+function openLecture(date) { selDate = date; setTab('lecture'); }
+function openNote(id) { selNote = id; setTab('note'); }
+
+function progressBar(done, total) {
+  var pct = total ? Math.round(done / total * 100) : 0;
+  return '<div class="bar"><i style="width:' + pct + '%"></i></div>'
+    + '<div class="meta">' + done + ' / ' + total + ' トピック消化（' + pct + '%）</div>';
+}
+
+function lectureCard(rec, kind) {
+  var h = '<div class="card' + (kind === 'today' ? ' today' : '') + '">';
+  h += '<div class="meta">' + esc(rec.date)
+    + (kind === 'today' ? ' <span class="badge now">今日の分</span>' : '')
+    + (kind === 'recent' ? ' <span class="badge">直近の回</span>' : '')
+    + (kind === 'ahead' ? ' <span class="badge ahead">先読み</span>' : '')
+    + (rec.level ? ' <span class="badge lv">' + esc(rec.level) + '</span>' : '')
+    + '</div>';
+  h += '<h2 class="ttl">' + esc(rec.topic) + '</h2>';
+  if (rec.progressDone) h += '<div class="meta">全' + rec.progressTotal + 'トピック中 ' + rec.progressDone + '個目</div>';
+  h += '<div class="md">' + mdToHtml(rec.md) + '</div>';
+  h += '</div>';
+  return h;
+}
+
+function renderToday() {
+  var pick = pickToday(), h = '';
+  if (!pick.rec) return '<p class="empty">演習データがまだありません。</p>';
+  // 進捗サマリ
+  if (PROG) {
+    var nt = nextTopic();
+    h += '<div class="card"><div class="meta">進捗</div>' + progressBar(PROG.done, PROG.total);
+    if (nt) h += '<div style="margin-top:8px">次のトピック: <b>' + esc(nt.topic) + '</b> <span class="badge lv">' + esc(nt.level) + '</span> <span class="meta">(No.' + nt.no + ')</span></div>';
+    else h += '<div style="margin-top:8px">カリキュラムをすべて消化しました。</div>';
+    h += '</div>';
+  }
+  h += lectureCard(pick.rec, pick.exact ? 'today' : 'recent');
+  var ahead = aheadList();
+  if (ahead.length) {
+    h += '<div class="card"><div class="meta">先読み（この先に生成済みの回）</div><ul class="linklist">';
+    ahead.forEach(function (r) {
+      h += '<li><a onclick="openLecture(\'' + r.date + '\')">' + esc(r.date) + '　' + esc(r.topic) + '</a></li>';
+    });
+    h += '</ul></div>';
+  }
+  return h;
+}
+
+function renderLecture() {
+  if (!LEC.length) return '<p class="empty">演習データがまだありません。</p>';
+  if (!selDate || !LEC.filter(function (x) { return x.date === selDate; }).length) selDate = pickToday().rec.date;
+  var idx = -1;
+  LEC.forEach(function (x, i) { if (x.date === selDate) idx = i; });
+  var rec = LEC[idx], t = todayStr();
+  var kind = rec.date === t ? 'today' : (rec.date > t ? 'ahead' : null);
+  var h = lectureCard(rec, kind);
+  h += '<div class="rowbtns">'
+    + '<button onclick="selDate=\'' + (LEC[idx - 1] ? LEC[idx - 1].date : '') + '\';render()"' + (idx > 0 ? '' : ' disabled') + '>← 前の回</button>'
+    + '<button onclick="selDate=\'' + (LEC[idx + 1] ? LEC[idx + 1].date : '') + '\';render()"' + (idx < LEC.length - 1 ? '' : ' disabled') + '>次の回 →</button>'
+    + '<button onclick="window.scrollTo(0,0)">先頭へ</button></div>';
+  return h;
+}
+
+function renderNote() {
+  if (!NOTES.length) return '<p class="empty">分野ノートがありません。</p>';
+  var list = NOTES.filter(function (n) { return n.level === selLevel; });
+  if (!list.length) { selLevel = NOTES[0].level; list = NOTES.filter(function (n) { return n.level === selLevel; }); }
+  var rec = list.filter(function (n) { return n.id === selNote; })[0] || list[0];
+  selNote = rec.id;
+  var h = '<div class="card"><div class="meta">' + esc(rec.level) + '　分野ノート</div>';
+  h += '<h2 class="ttl">' + esc(rec.title) + '</h2>';
+  h += '<div class="md">' + mdToHtml(rec.md) + '</div></div>';
+  var idx = 0; list.forEach(function (n, i) { if (n.id === rec.id) idx = i; });
+  h += '<div class="rowbtns">'
+    + '<button onclick="selNote=\'' + (list[idx - 1] ? list[idx - 1].id : '') + '\';render()"' + (idx > 0 ? '' : ' disabled') + '>← 前の分野</button>'
+    + '<button onclick="selNote=\'' + (list[idx + 1] ? list[idx + 1].id : '') + '\';render()"' + (idx < list.length - 1 ? '' : ' disabled') + '>次の分野 →</button>'
+    + '<button onclick="window.scrollTo(0,0)">先頭へ</button></div>';
+  return h;
+}
+
+function renderProgress() {
+  if (!PROG) return '<p class="empty">進捗データがありません。</p>';
+  var nt = nextTopic();
+  var h = '<div class="card"><div class="meta">カリキュラム進捗</div>' + progressBar(PROG.done, PROG.total) + '</div>';
+  h += '<table class="prog"><tr><th>No</th><th>級</th><th>トピック</th><th>消化日</th></tr>';
+  PROG.items.forEach(function (it) {
+    var cls = it.date ? 'done' : (nt && nt.no === it.no ? 'next' : '');
+    var link = it.date ? '<a onclick="openLecture(\'' + it.date + '\')" style="color:var(--accent2);cursor:pointer">' + it.date + '</a>' : '<span class="meta">未</span>';
+    h += '<tr class="' + cls + '"><td class="no">' + it.no + '</td><td>' + esc(it.level) + '</td><td>' + esc(it.topic) + '</td><td>' + link + '</td></tr>';
+  });
+  return h + '</table>';
+}
+
+function renderCtrl() {
+  var c = document.getElementById('ctrl');
+  if (tab === 'lecture') {
+    var h = '<select onchange="selDate=this.value;render()">';
+    var t = todayStr();
+    LEC.slice().reverse().forEach(function (r) {
+      h += '<option value="' + r.date + '"' + (r.date === selDate ? ' selected' : '') + '>' + r.date + (r.date > t ? '（先読み）' : '') + '　' + r.topic + '</option>';
+    });
+    c.innerHTML = h + '</select>';
+  } else if (tab === 'note') {
+    var levels = [];
+    NOTES.forEach(function (n) { if (levels.indexOf(n.level) < 0) levels.push(n.level); });
+    if (!selLevel) selLevel = levels[0];
+    var h2 = '<select onchange="selLevel=this.value;selNote=null;render()">';
+    levels.forEach(function (l) { h2 += '<option' + (l === selLevel ? ' selected' : '') + '>' + l + '</option>'; });
+    h2 += '</select> <select onchange="selNote=this.value;render()">';
+    NOTES.filter(function (n) { return n.level === selLevel; }).forEach(function (n) {
+      h2 += '<option value="' + n.id + '"' + (n.id === selNote ? ' selected' : '') + '>' + (n.no ? ('0' + n.no).slice(-2) + '. ' : '') + n.title + '</option>';
+    });
+    c.innerHTML = h2 + '</select>';
+  } else {
+    c.innerHTML = '';
+  }
+}
+
+function render() {
+  var c = document.getElementById('content');
+  if (tab === 'today') c.innerHTML = renderToday();
+  else if (tab === 'lecture') c.innerHTML = renderLecture();
+  else if (tab === 'note') c.innerHTML = renderNote();
+  else c.innerHTML = renderProgress();
+  renderCtrl();
+  if (tab === 'lecture') store('date', selDate);
+  if (tab === 'note') { store('note', selNote); store('level', selLevel); }
+}
+
+/* ============================================================
+   起動
+   ============================================================ */
+var KATEX = [
+  'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js'
+];
+Promise.all([
+  loadOptional('演習データ/_all.js'),
+  loadOptional('ノートデータ/_all.js'),
+  loadOptional('進捗データ/progress.js'),
+  loadChain(KATEX)
+]).then(function () {
+  LEC = window.__LECTURES.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+  NOTES = window.__NOTES.slice().sort(function (a, b) { return a.id < b.id ? -1 : 1; });
+  PROG = window.__PROGRESS;
+  selDate = store('date') || null;
+  selNote = store('note') || null;
+  selLevel = store('level') || null;
+  var t = store('tab');
+  if (t && ['today', 'lecture', 'note', 'progress'].indexOf(t) >= 0) tab = t;
+  ['today', 'lecture', 'note', 'progress'].forEach(function (x) {
+    document.getElementById('t_' + x).classList.toggle('active', x === tab);
+  });
+  render();
+});
+</script>
+</body>
+</html>
