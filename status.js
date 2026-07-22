@@ -1,19 +1,19 @@
 window.__portalStatus({
  "id": "toukei",
- "date": "2026-07-22",
+ "date": "2026-07-24",
  "updated": "2026-07-22",
- "headline": "指数分布（2級）",
- "sub": "全50トピック中 12個目",
+ "headline": "ベイズの定理（2級）",
+ "sub": "全50トピック中 1個目",
  "progress": {
-  "done": 12,
+  "done": 0,
   "total": 50
  },
- "next": "大数の法則",
+ "next": "ベイズの定理",
  "items": [
   {
    "label": "演習",
-   "state": "ready",
-   "detail": "指数分布"
+   "state": "none",
+   "detail": "2026-07-24 から開始"
   }
  ]
 });

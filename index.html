@@ -60,6 +60,7 @@
   table.prog th{background:#f1f5f9;font-size:13px}
   table.prog tr.done{background:#f0fdf4}
   table.prog tr.next{background:#fffbeb;font-weight:600}
+  table.prog tr.sched{background:#f8fafc;color:#475569}
   table.prog td.no{color:var(--sub);width:3em}
   .hublink{display:inline-block;font-size:12px;color:#6b7280;text-decoration:none;margin-bottom:6px}
   .hublink:hover{text-decoration:underline}
@@ -247,13 +248,20 @@ function todayStr(d) {
 }
 function store(k, v) { try { if (v === undefined) return localStorage.getItem('toukei_' + k); localStorage.setItem('toukei_' + k, v); } catch (e) { return null; } }
 
-/** 今日の回。無ければ「今日以前で最新の回」を返します。 */
+/** 今日の回 → 無ければ今日以前の直近 → それも無ければ最初の予定回。 */
 function pickToday() {
   var t = todayStr();
   var exact = LEC.filter(function (x) { return x.date === t; })[0];
-  if (exact) return { rec: exact, exact: true };
+  if (exact) return { rec: exact, kind: 'today' };
   var past = LEC.filter(function (x) { return x.date <= t; });
-  return { rec: past.length ? past[past.length - 1] : (LEC[0] || null), exact: false };
+  if (past.length) return { rec: past[past.length - 1], kind: 'recent' };
+  return { rec: LEC[0] || null, kind: 'upcoming' };
+}
+/** 消化済み（今日以前に予定されていた回）の数。先行生成分は消化に数えません。 */
+function doneCount() {
+  if (!PROG) return 0;
+  var t = todayStr();
+  return PROG.items.filter(function (it) { return it.date && it.date <= t; }).length;
 }
 /** 先読み対象（今日より後の回） */
 function aheadList() {
@@ -263,6 +271,10 @@ function aheadList() {
 /** カリキュラム上の次トピック */
 function nextTopic() {
   if (!PROG) return null;
+  var t = todayStr();
+  // まず「これから予定されている回」、無ければカリキュラム上の未消化トピック
+  var upcoming = PROG.items.filter(function (it) { return it.date && it.date > t; });
+  if (upcoming.length) return upcoming[0];
   for (var i = 0; i < PROG.items.length; i++) if (!PROG.items[i].date) return PROG.items[i];
   return null;
 }
@@ -290,6 +302,7 @@ function lectureCard(rec, kind) {
     + (kind === 'today' ? ' <span class="badge now">今日の分</span>' : '')
     + (kind === 'recent' ? ' <span class="badge">直近の回</span>' : '')
     + (kind === 'ahead' ? ' <span class="badge ahead">先読み</span>' : '')
+    + (kind === 'upcoming' ? ' <span class="badge ahead">次回</span>' : '')
     + (rec.level ? ' <span class="badge lv">' + esc(rec.level) + '</span>' : '')
     + '</div>';
   h += '<h2 class="ttl">' + esc(rec.topic) + '</h2>';
@@ -305,15 +318,15 @@ function renderToday() {
   // 進捗サマリ
   if (PROG) {
     var nt = nextTopic();
-    h += '<div class="card"><div class="meta">進捗</div>' + progressBar(PROG.done, PROG.total);
-    if (nt) h += '<div style="margin-top:8px">次のトピック: <b>' + esc(nt.topic) + '</b> <span class="badge lv">' + esc(nt.level) + '</span> <span class="meta">(No.' + nt.no + ')</span></div>';
+    h += '<div class="card"><div class="meta">進捗</div>' + progressBar(doneCount(), PROG.total);
+    if (nt) h += '<div style="margin-top:8px">次のトピック: <b>' + esc(nt.topic) + '</b> <span class="badge lv">' + esc(nt.level) + '</span> <span class="meta">(No.' + nt.no + (nt.date ? ' ／ ' + nt.date : '') + ')</span></div>';
     else h += '<div style="margin-top:8px">カリキュラムをすべて消化しました。</div>';
     h += '</div>';
   }
-  h += lectureCard(pick.rec, pick.exact ? 'today' : 'recent');
+  h += lectureCard(pick.rec, pick.kind);
   var ahead = aheadList();
   if (ahead.length) {
-    h += '<div class="card"><div class="meta">先読み（この先に生成済みの回）</div><ul class="linklist">';
+    h += '<div class="card"><div class="meta">この先の予定（生成済み）</div><ul class="linklist">';
     ahead.forEach(function (r) {
       h += '<li><a onclick="openLecture(\'' + r.date + '\')">' + esc(r.date) + '　' + esc(r.topic) + '</a></li>';
     });
@@ -357,11 +370,17 @@ function renderNote() {
 function renderProgress() {
   if (!PROG) return '<p class="empty">進捗データがありません。</p>';
   var nt = nextTopic();
-  var h = '<div class="card"><div class="meta">カリキュラム進捗</div>' + progressBar(PROG.done, PROG.total) + '</div>';
+  var t = todayStr();
+  var h = '<div class="card"><div class="meta">カリキュラム進捗</div>' + progressBar(doneCount(), PROG.total)
+    + '<div class="meta">生成済み ' + PROG.done + ' 件（うち予定日が未来の回は「予定」と表示します）</div></div>';
   h += '<table class="prog"><tr><th>No</th><th>級</th><th>トピック</th><th>消化日</th></tr>';
   PROG.items.forEach(function (it) {
-    var cls = it.date ? 'done' : (nt && nt.no === it.no ? 'next' : '');
-    var link = it.date ? '<a onclick="openLecture(\'' + it.date + '\')" style="color:var(--accent2);cursor:pointer">' + it.date + '</a>' : '<span class="meta">未</span>';
+    var future = it.date && it.date > t;
+    var cls = it.date ? (future ? 'sched' : 'done') : (nt && nt.no === it.no ? 'next' : '');
+    var link = it.date
+      ? '<a onclick="openLecture(\'' + it.date + '\')" style="color:var(--accent2);cursor:pointer">' + it.date + '</a>'
+        + (future ? ' <span class="meta">予定</span>' : '')
+      : '<span class="meta">未</span>';
     h += '<tr class="' + cls + '"><td class="no">' + it.no + '</td><td>' + esc(it.level) + '</td><td>' + esc(it.topic) + '</td><td>' + link + '</td></tr>';
   });
   return h + '</table>';
