@@ -61,10 +61,13 @@
   table.prog tr.done{background:#f0fdf4}
   table.prog tr.next{background:#fffbeb;font-weight:600}
   table.prog td.no{color:var(--sub);width:3em}
+  .hublink{display:inline-block;font-size:12px;color:#6b7280;text-decoration:none;margin-bottom:6px}
+  .hublink:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 <header>
+  <a class="hublink" id="hublink" href="/">&larr; ポータル一覧</a>
   <h1>統計検定 学習ポータル</h1>
   <nav>
     <button id="t_today" class="active" onclick="setTab('today')">今日</button>
@@ -426,6 +429,9 @@ Promise.all([
   });
   render();
 });
+
+// ハブへの戻りリンク（ローカルで開いたときはファイルパスに切り替える）
+(function(){var a=document.getElementById('hublink');if(a&&location.protocol==='file:')a.href='../../ハブ/index.html';})();
 </script>
 </body>
 </html>
