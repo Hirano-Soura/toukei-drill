@@ -53,6 +53,7 @@
   .md th,.md td{border:1px solid var(--line);padding:6px 10px;text-align:left;white-space:nowrap}
   .md th{background:var(--soft)}
   .md .katex-display{overflow-x:auto;overflow-y:hidden;padding:2px 0}
+  .md a.notelink{color:var(--accent2);cursor:pointer;text-decoration:underline}
   .rawtex{color:var(--accent2);background:#f1f5f9;border-radius:4px;padding:0 4px}
   /* 進捗テーブル */
   table.prog{width:100%;border-collapse:collapse;background:var(--card);border-radius:10px;overflow:hidden;font-size:14px}
@@ -141,6 +142,14 @@ function renderMath(tex, display) {
   return (display ? '<div class="rawtex">' : '<span class="rawtex">') + esc(tex) + (display ? '</div>' : '</span>');
 }
 function inline(t) {
+  // 【項目20の修正】md への相対リンク（例: [確率](02_確率.md)）は、リンク先の md が
+  // publish されていないため href では 404 になる。先頭の連番からノート番号を取り出し、
+  // アプリ内の別ノートへ遷移させる。連番が無いものは通常のリンクのままにする。
+  t = t.replace(/\[([^\]]+)\]\(([^)\s]+\.md)\)/g, function (whole, label, file) {
+    var m = /(?:^|\/)(\d+)[_\-]/.exec(decodeURIComponent(file));
+    if (!m) return whole;
+    return '<a class="notelink" onclick="openNoteNo(' + parseInt(m[1], 10) + ')">' + label + '</a>';
+  });
   t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
   t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   t = t.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
@@ -289,6 +298,12 @@ function setTab(t) {
 }
 function openLecture(date) { selDate = date; setTab('lecture'); }
 function openNote(id) { selNote = id; setTab('note'); }
+/** 同じ級の中から通し番号 no のノートを開く（INDEX の分野一覧リンク用）。 */
+function openNoteNo(no) {
+  var lv = selLevel || (NOTES[0] && NOTES[0].level);
+  var hit = NOTES.filter(function (n) { return n.level === lv && n.no === no; })[0];
+  if (hit) { openNote(hit.id); window.scrollTo(0, 0); }
+}
 
 function progressBar(done, total) {
   var pct = total ? Math.round(done / total * 100) : 0;
